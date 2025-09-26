@@ -596,5 +596,647 @@
         <i class="fas fa-check-circle"></i> Save All Patient & Medicine Data
     </button>
 </div>
+
+<script>
+    let caretakerData = {};
+    let patientsData = [];
+    let totalPatients = 0;
+    let currentStep = 1;
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+        setupCaretakerForm();
+    });
+
+        // Setup caretaker form
+        function setupCaretakerForm() {
+        const form = document.getElementById('caretakerForm');
+        const submitBtn = document.getElementById('submitCaretakerBtn');
+
+        form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        caretakerData = {};
+
+        for (let [key, value] of formData.entries()) {
+        caretakerData[key] = value;
+    }
+
+        // Validation
+        if (!caretakerData.name || !caretakerData.age || !caretakerData.gender || !caretakerData.patientCount) {
+        showAlert('error', 'Please fill in all required fields.');
+        return;
+    }
+
+        // Handle "more than 5" option
+        let patientCount = caretakerData.patientCount;
+        if (patientCount === 'more') {
+        patientCount = prompt('Please enter the exact number of patients:');
+        if (!patientCount || isNaN(patientCount) || patientCount < 1) {
+        alert('Please enter a valid number of patients.');
+        return;
+    }
+        patientCount = parseInt(patientCount);
+    }
+
+        totalPatients = parseInt(patientCount);
+        caretakerData.patientCount = totalPatients;
+
+        // Show loading state
+        submitBtn.classList.add('loading');
+        submitBtn.textContent = 'Processing...';
+        submitBtn.disabled = true;
+
+        setTimeout(() => {
+        showAlert('success', 'Caretaker information saved successfully!');
+        setTimeout(() => {
+        moveToStep(2);
+        generatePatientForms();
+    }, 1000);
+    }, 1500);
+    });
+    }
+
+        // Move to specific step
+        function moveToStep(step) {
+        // Hide all steps
+        document.getElementById('caretakerStep').classList.add('hidden');
+        document.getElementById('patientStep').classList.add('hidden');
+        document.getElementById('medicineStep').classList.add('hidden');
+
+        // Show current step
+        if (step === 1) document.getElementById('caretakerStep').classList.remove('hidden');
+        if (step === 2) document.getElementById('patientStep').classList.remove('hidden');
+        if (step === 3) document.getElementById('medicineStep').classList.remove('hidden');
+
+        currentStep = step;
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+        // Generate patient forms
+        function generatePatientForms() {
+        const container = document.getElementById('patientFormsContainer');
+        container.innerHTML = '';
+        patientsData = [];
+
+        for (let i = 1; i <= totalPatients; i++) {
+        const patientForm = createPatientForm(i);
+        container.appendChild(patientForm);
+        patientsData.push({ basicInfo: {}, medicines: [] });
+    }
+
+        document.getElementById('continueToMedicinesBtn').style.display = 'block';
+        setupPatientFormListeners();
+    }
+
+        // Create individual patient form
+        function createPatientForm(patientNumber) {
+        const formCard = document.createElement('div');
+        formCard.className = 'patient-card slide-in';
+        formCard.style.animationDelay = `${(patientNumber - 1) * 0.1}s`;
+
+        formCard.innerHTML = `
+                    <div class="patient-header">
+                        <div class="patient-number">${patientNumber}</div>
+                        <div>
+                            <h2>Patient ${patientNumber} Information</h2>
+                            <p>Enter basic details and medicine count</p>
+                        </div>
+                    </div>
+
+                    <form class="patient-form" data-patient="${patientNumber}">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Patient Name <span class="required">*</span></label>
+                                <input type="text" name="name" required placeholder="Enter patient's full name" />
+                            </div>
+                            <div class="form-group">
+                                <label>Age <span class="required">*</span></label>
+                                <input type="number" name="age" min="1" max="120" required placeholder="Enter age" />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Gender <span class="required">*</span></label>
+                                <select name="gender" required>
+                                    <option value="">Select gender</option>
+                                    <option value="female">Female</option>
+                                    <option value="male">Male</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Medical Condition</label>
+                                <input type="text" name="condition" placeholder="Primary medical condition (optional)" />
+                            </div>
+                        </div>
+
+                        <div class="medicine-count-section">
+                            <h3><i class="fas fa-pills"></i> Medicine Information</h3>
+                            <div class="form-group">
+                                <label>Number of Different Medicines <span class="required">*</span></label>
+                                <select name="medicineCount" class="medicine-count-select" required>
+                                    <option value="">Select number of medicines</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="more">More than 8</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                `;
+
+        return formCard;
+    }
+
+        // Setup patient form listeners
+        function setupPatientFormListeners() {
+        const forms = document.querySelectorAll('.patient-form');
+        const continueBtn = document.getElementById('continueToMedicinesBtn');
+
+        forms.forEach((form, index) => {
+        const inputs = form.querySelectorAll('input, select');
+        const medicineCountSelect = form.querySelector('.medicine-count-select');
+
+        inputs.forEach(input => {
+        input.addEventListener('change', function() {
+        updatePatientBasicInfo(index + 1);
+        checkPatientFormsCompletion();
+    });
+    });
+
+        medicineCountSelect.addEventListener('change', function() {
+        let count = this.value;
+        if (count === 'more') {
+        count = prompt('Please enter the exact number of medicines:');
+        if (!count || isNaN(count) || count < 1) {
+        this.value = '';
+        return;
+    }
+        count = parseInt(count);
+    }
+
+        if (count && count > 0) {
+        patientsData[index].medicineCount = parseInt(count);
+        updatePatientBasicInfo(index + 1);
+        checkPatientFormsCompletion();
+    }
+    });
+    });
+
+        continueBtn.addEventListener('click', function() {
+        if (validatePatientForms()) {
+        moveToStep(3);
+        generateMedicineManagement();
+    } else {
+        showAlert('error', 'Please complete all patient information before continuing.');
+    }
+    });
+    }
+
+        // Update patient basic info
+        function updatePatientBasicInfo(patientNumber) {
+        const form = document.querySelector(`[data-patient="${patientNumber}"]`);
+        const formData = new FormData(form);
+        const basicInfo = {};
+
+        for (let [key, value] of formData.entries()) {
+        basicInfo[key] = value;
+    }
+
+        patientsData[patientNumber - 1].basicInfo = basicInfo;
+    }
+
+        // Check if all patient forms are complete
+        function checkPatientFormsCompletion() {
+        const allComplete = patientsData.every(patient => {
+        const info = patient.basicInfo;
+        return info.name && info.age && info.gender && info.medicineCount;
+    });
+
+        document.getElementById('continueToMedicinesBtn').style.display = allComplete ? 'block' : 'none';
+    }
+
+        // Validate patient forms
+        function validatePatientForms() {
+        return patientsData.every(patient => {
+        const info = patient.basicInfo;
+        return info.name && info.age && info.gender && info.medicineCount;
+    });
+    }
+
+        // Generate medicine management section
+        function generateMedicineManagement() {
+        const container = document.getElementById('medicineManagementContainer');
+        container.innerHTML = '';
+
+        patientsData.forEach((patient, patientIndex) => {
+        const patientCard = createPatientMedicineCard(patientIndex + 1, patient);
+        container.appendChild(patientCard);
+    });
+
+        document.getElementById('finalSubmitBtn').classList.remove('hidden');
+        setupMedicineManagementListeners();
+        updateMedicineProgress();
+    }
+
+        // Create patient medicine management card
+        function createPatientMedicineCard(patientNumber, patientData) {
+        const card = document.createElement('div');
+        card.className = 'patient-card slide-in';
+        card.style.animationDelay = `${(patientNumber - 1) * 0.1}s`;
+
+        const medicineCount = parseInt(patientData.basicInfo.medicineCount);
+        const patientName = patientData.basicInfo.name;
+
+        let medicineCardsHTML = '';
+        for (let i = 1; i <= medicineCount; i++) {
+        medicineCardsHTML += createMedicineCardHTML(patientNumber, i);
+    }
+
+        card.innerHTML = `
+                    <div class="patient-header">
+                        <div class="patient-number">${patientNumber}</div>
+                        <div>
+                            <h2>${patientName} - Medicine Management</h2>
+                            <p>Age: ${patientData.basicInfo.age} | Gender: ${patientData.basicInfo.gender}</p>
+                            <p><strong>${medicineCount} medicines to configure</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="medicine-input-section" data-patient="${patientNumber}">
+                        ${medicineCardsHTML}
+                    </div>
+                `;
+
+        // Initialize medicine arrays
+        patientData.medicines = new Array(medicineCount).fill(null).map(() => ({
+        image: null,
+        extractedName: '',
+        pillsPerDay: '',
+        schedule: []
+    }));
+
+        return card;
+    }
+
+        // Create individual medicine card HTML
+        function createMedicineCardHTML(patientNumber, medicineNumber) {
+        return `
+                    <div class="medicine-card" data-patient="${patientNumber}" data-medicine="${medicineNumber}">
+                        <div class="medicine-header">
+                            <div class="medicine-number">${medicineNumber}</div>
+                            <h3>Medicine ${medicineNumber}</h3>
+                        </div>
+
+                        <div class="image-upload-area">
+                            <div class="upload-icon">
+                                <i class="fas fa-camera-retro"></i>
+                            </div>
+                            <h4>Upload Medicine Photo</h4>
+                            <p>Take a clear photo of the medicine bottle or prescription</p>
+                            <input type="file" class="file-input" id="medicine_${patientNumber}_${medicineNumber}" accept="image/*">
+                            <button type="button" class="upload-btn" onclick="document.getElementById('medicine_${patientNumber}_${medicineNumber}').click()">
+                                <i class="fas fa-upload"></i> Choose Image
+                            </button>
+                            <div class="image-preview" id="preview_${patientNumber}_${medicineNumber}">
+                                <img class="medicine-image" style="display: none;">
+                                <div class="extracted-name" style="display: none;">
+                                    <h4><i class="fas fa-robot"></i> AI Extracted Medicine Name:</h4>
+                                    <p class="medicine-name-text"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Number of Pills Per Day <span class="required">*</span></label>
+                            <select class="pills-per-day" required>
+                                <option value="">Select pills per day</option>
+                                <option value="1">1 pill per day</option>
+                                <option value="2">2 pills per day</option>
+                                <option value="3">3 pills per day</option>
+                                <option value="4">4 pills per day</option>
+                                <option value="5">5 pills per day</option>
+                                <option value="6">6 pills per day</option>
+                                <option value="more">More than 6 pills</option>
+                            </select>
+                        </div>
+
+                        <div class="pill-schedule" style="display: none;">
+                            <h4><i class="fas fa-clock"></i> Daily Schedule</h4>
+                            <p>Set the time for each pill:</p>
+                            <div class="pill-time-inputs" id="timeInputs_${patientNumber}_${medicineNumber}">
+                                <!-- Dynamic time inputs will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                `;
+    }
+
+        // Setup medicine management listeners
+        function setupMedicineManagementListeners() {
+        // Handle image uploads
+        const fileInputs = document.querySelectorAll('.file-input');
+        fileInputs.forEach(input => {
+        input.addEventListener('change', handleMedicineImageUpload);
+    });
+
+        // Handle pills per day selection
+        const pillsSelects = document.querySelectorAll('.pills-per-day');
+        pillsSelects.forEach(select => {
+        select.addEventListener('change', handlePillsPerDayChange);
+    });
+
+        // Setup final submit
+        document.getElementById('finalSubmitBtn').addEventListener('click', handleFinalSubmit);
+    }
+
+        // Handle medicine image upload
+        function handleMedicineImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const input = event.target;
+        const [, patientNum, medicineNum] = input.id.split('_');
+        const patientIndex = parseInt(patientNum) - 1;
+        const medicineIndex = parseInt(medicineNum) - 1;
+
+        const preview = document.getElementById(`preview_${patientNum}_${medicineNum}`);
+        const img = preview.querySelector('.medicine-image');
+        const extractedDiv = preview.querySelector('.extracted-name');
+        const nameText = preview.querySelector('.medicine-name-text');
+
+        // Show image preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+        img.src = e.target.result;
+        img.style.display = 'block';
+        preview.style.display = 'block';
+
+        // Store image data
+        patientsData[patientIndex].medicines[medicineIndex].image = {
+        name: file.name,
+        data: e.target.result
+    };
+
+        // Simulate AI name extraction (in real implementation, this would call an AI service)
+        setTimeout(() => {
+        const simulatedNames = [
+        'Ibuprofen 200mg',
+        'Paracetamol 500mg',
+        'Amoxicillin 250mg',
+        'Metformin 500mg',
+        'Lisinopril 10mg',
+        'Atorvastatin 20mg',
+        'Omeprazole 20mg',
+        'Aspirin 81mg'
+        ];
+
+        const randomName = simulatedNames[Math.floor(Math.random() * simulatedNames.length)];
+        nameText.textContent = randomName;
+        extractedDiv.style.display = 'block';
+
+        // Store extracted name
+        patientsData[patientIndex].medicines[medicineIndex].extractedName = randomName;
+
+        updateMedicineProgress();
+    }, 2000);
+    };
+        reader.readAsDataURL(file);
+    }
+
+        // Handle pills per day change
+        function handlePillsPerDayChange(event) {
+        const select = event.target;
+        let pillsPerDay = select.value;
+
+        if (pillsPerDay === 'more') {
+        pillsPerDay = prompt('Please enter the exact number of pills per day:');
+        if (!pillsPerDay || isNaN(pillsPerDay) || pillsPerDay < 1) {
+        select.value = '';
+        return;
+    }
+        pillsPerDay = parseInt(pillsPerDay);
+    }
+
+        if (!pillsPerDay) return;
+
+        const medicineCard = select.closest('.medicine-card');
+        const patientNum = medicineCard.dataset.patient;
+        const medicineNum = medicineCard.dataset.medicine;
+        const patientIndex = parseInt(patientNum) - 1;
+        const medicineIndex = parseInt(medicineNum) - 1;
+
+        // Store pills per day
+        patientsData[patientIndex].medicines[medicineIndex].pillsPerDay = parseInt(pillsPerDay);
+
+        // Show schedule section and create time inputs
+        const scheduleSection = medicineCard.querySelector('.pill-schedule');
+        const timeInputsContainer = medicineCard.querySelector(`#timeInputs_${patientNum}_${medicineNum}`);
+
+        scheduleSection.style.display = 'block';
+        timeInputsContainer.innerHTML = '';
+
+        // Create time inputs for each pill
+        for (let i = 1; i <= pillsPerDay; i++) {
+        const timeInputGroup = document.createElement('div');
+        timeInputGroup.className = 'time-input-group';
+        timeInputGroup.innerHTML = `
+                        <div class="pill-indicator">${i}</div>
+                        <label>Pill ${i} time:</label>
+                        <input type="time" class="time-input" data-pill="${i}" required>
+                    `;
+        timeInputsContainer.appendChild(timeInputGroup);
+    }
+
+        // Add event listeners to time inputs
+        const timeInputs = timeInputsContainer.querySelectorAll('.time-input');
+        timeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+        updateMedicineSchedule(patientIndex, medicineIndex);
+    });
+    });
+
+        updateMedicineProgress();
+    }
+
+        // Update medicine schedule
+        function updateMedicineSchedule(patientIndex, medicineIndex) {
+        const patientNum = patientIndex + 1;
+        const medicineNum = medicineIndex + 1;
+        const timeInputs = document.querySelectorAll(`#timeInputs_${patientNum}_${medicineNum} .time-input`);
+
+        const schedule = [];
+        timeInputs.forEach(input => {
+        if (input.value) {
+        schedule.push({
+        pill: parseInt(input.dataset.pill),
+        time: input.value
+    });
+    }
+    });
+
+        patientsData[patientIndex].medicines[medicineIndex].schedule = schedule;
+        updateMedicineProgress();
+    }
+
+        // Update medicine progress
+        function updateMedicineProgress() {
+        let totalMedicines = 0;
+        let completedMedicines = 0;
+
+        patientsData.forEach(patient => {
+        patient.medicines.forEach(medicine => {
+        totalMedicines++;
+        if (medicine.image && medicine.extractedName && medicine.pillsPerDay &&
+        medicine.schedule && medicine.schedule.length === medicine.pillsPerDay) {
+        completedMedicines++;
+    }
+    });
+    });
+
+        const progress = totalMedicines > 0 ? (completedMedicines / totalMedicines) * 100 : 0;
+
+        document.getElementById('medicineProgressBar').style.width = `${progress}%`;
+        document.getElementById('medicineProgressText').textContent = `${Math.round(progress)}% Complete (${completedMedicines}/${totalMedicines} medicines)`;
+
+        // Show final submit button when all medicines are complete
+        if (progress === 100) {
+        document.getElementById('finalSubmitBtn').classList.remove('hidden');
+    }
+    }
+
+        // Handle final submit
+        function handleFinalSubmit() {
+        const finalBtn = document.getElementById('finalSubmitBtn');
+
+        // Validate all data
+        if (!validateAllData()) {
+        showAlert('error', 'Please complete all medicine information before submitting.');
+        return;
+    }
+
+        finalBtn.classList.add('loading');
+        finalBtn.textContent = 'Saving to Database...';
+        finalBtn.disabled = true;
+
+        // Prepare final data structure
+        const finalData = {
+        caretaker: caretakerData,
+        patients: patientsData.map((patient, index) => ({
+        patientNumber: index + 1,
+        basicInfo: patient.basicInfo,
+        medicines: patient.medicines.map((medicine, medIndex) => ({
+        medicineNumber: medIndex + 1,
+        image: medicine.image,
+        extractedName: medicine.extractedName,
+        pillsPerDay: medicine.pillsPerDay,
+        schedule: medicine.schedule.sort((a, b) => a.pill - b.pill)
+    }))
+    })),
+        timestamp: new Date().toISOString(),
+        totalPatients: totalPatients,
+        totalMedicines: patientsData.reduce((sum, patient) => sum + patient.medicines.length, 0)
+    };
+
+        // Simulate database save (replace with actual API call)
+        setTimeout(() => {
+        console.log('Final Data Structure for Database:', finalData);
+
+        // Show success message
+        finalBtn.classList.remove('loading');
+        finalBtn.textContent = 'Data Saved Successfully!';
+        finalBtn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+
+        showAlert('success', 'All patient and medicine data has been saved successfully to the database!');
+
+        // You can add actual database integration here
+        // Example: await saveToDatabase(finalData);
+
+    }, 3000);
+    }
+
+        // Validate all data
+        function validateAllData() {
+        return patientsData.every(patient => {
+        // Check basic info
+        if (!patient.basicInfo.name || !patient.basicInfo.age || !patient.basicInfo.gender) {
+        return false;
+    }
+
+        // Check medicines
+        return patient.medicines.every(medicine => {
+        return medicine.image && medicine.extractedName &&
+        medicine.pillsPerDay && medicine.schedule &&
+        medicine.schedule.length === medicine.pillsPerDay;
+    });
+    });
+    }
+
+        // Show alert messages
+        function showAlert(type, message) {
+        const alertClass = type === 'success' ? 'successAlert' : 'errorAlert';
+        const alertElement = document.getElementById(alertClass) ||
+        document.querySelector(`.alert.${type}`);
+
+        if (alertElement) {
+        alertElement.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}`;
+        alertElement.style.display = 'block';
+        alertElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => {
+        alertElement.style.display = 'none';
+    }, 5000);
+    } else {
+        alert(message);
+    }
+    }
+
+        // Utility function to format data for API/Database
+        function prepareDataForAPI() {
+        return {
+        caretaker: caretakerData,
+        patients: patientsData.map((patient, pIndex) => ({
+        id: pIndex + 1,
+        ...patient.basicInfo,
+        medicines: patient.medicines.map((medicine, mIndex) => ({
+        id: mIndex + 1,
+        imageName: medicine.image?.name,
+        imageData: medicine.image?.data,
+        extractedName: medicine.extractedName,
+        pillsPerDay: medicine.pillsPerDay,
+        dailySchedule: medicine.schedule.map(s => ({
+        pillNumber: s.pill,
+        time: s.time,
+        timeFormatted: formatTime(s.time)
+    }))
+    }))
+    })),
+        summary: {
+        totalPatients: totalPatients,
+        totalMedicines: patientsData.reduce((sum, p) => sum + p.medicines.length, 0),
+        createdAt: new Date().toISOString()
+    }
+    };
+    }
+
+        // Format time for display
+        function formatTime(time24) {
+        const [hours, minutes] = time24.split(':');
+        const hour12 = hours % 12 || 12;
+        const ampm = hours < 12 ? 'AM' : 'PM';
+        return `${hour12}:${minutes} ${ampm}`;
+    }
+</script>
 {% endblock %}
 
