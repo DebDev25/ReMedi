@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <div class="doctor-avatars">
+                <div class="avatar">👨‍⚕</div>
+                <div class="avatar">👩‍⚕</div>
+                <div class="avatar">🤖</div>
+                <div class="avatar">👨‍⚕</div>
+                <div class="avatar">👩‍⚕</div>
+            </div>
+            <h1>Hi, I'm MediBot</h1>
+            <p>Your AI healthcare assistant - trained by leading medical professionals with the latest healthcare data.
+                Get expert guidance 24/7 with personalized health insights in seconds.</p>
+            <p>Need professional consultation? Connect instantly with licensed healthcare providers for prescriptions
+                and specialized care. We work with major insurance providers.</p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('patient') }}" class="btn-primary">
+                    <i class="fas fa-comments"></i> PATIENT
+                </a>
+                <a href="{{ url_for('caretaker') }}" class="btn-primary">
+                    <i class="fas fa-comments"></i> CARETAKER
+                </a>
+
+            </div>
+        </div>
+    </div>
+    <!-- Chat Popup -->
+    <div class="chat-popup" id="chatPopup">
+        <div class="chat-popup-header">
+            <div class="chat-popup-avatar">🤖</div>
+            <div class="chat-popup-info">
+                <h3>MediBot AI</h3>
+                <p>Online • Ready to help</p>
+            </div>
+            <button class="chat-popup-close" onclick="closeChat()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="chat-popup-messages" id="chatMessages">
+            <div class="message ai">
+                <p>Hello! I'm MediBot, your AI healthcare assistant. I'm here to help answer your health questions and
+                    provide guidance. How can I assist you today?</p>
+            </div>
+        </div>
+
+        <div class="chat-popup-input">
+            <input type="text" id="chatInput" placeholder="Type your health question..."/>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="features" id="features">
+    <div class="container">
+        <h2 class="section-title">Why Choose MediBot?</h2>
+        <p class="section-subtitle">Advanced AI technology meets compassionate healthcare to provide you with the best
+            possible medical guidance and support.</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>AI-Powered Insights</h3>
+                <p>Our advanced AI is trained on the latest medical research and guidelines, providing you with
+                    accurate, up-to-date health information and personalized recommendations.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3>24/7 Availability</h3>
+                <p>Get instant access to healthcare guidance anytime, anywhere. No appointments needed for basic
+                    consultations and health questions.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h3>Telehealth Integration</h3>
+                <p>Seamlessly connect with licensed healthcare providers for video consultations, prescriptions, and
+                    specialized medical care when needed.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Privacy & Security</h3>
+                <p>Your health information is protected with enterprise-grade security and full HIPAA compliance. Your
+                    privacy is our top priority.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h3>Personalized Care</h3>
+                <p>Receive tailored health recommendations based on your medical history, symptoms, and personal health
+                    goals for optimal outcomes.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h3>Insurance Accepted</h3>
+                <p>We work with major insurance providers to make quality healthcare accessible and affordable for
+                    everyone.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+
