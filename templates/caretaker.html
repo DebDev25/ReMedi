@@ -1125,6 +1125,7 @@
     }
 
     // Handle final submit
+    // REPLACE your existing handleFinalSubmit function with this:
     function handleFinalSubmit() {
         const finalBtn = document.getElementById('finalSubmitBtn');
         if (!finalBtn) return;
@@ -1137,13 +1138,52 @@
 
         setButtonLoadingState(finalBtn, true, 'Saving to Database...');
 
-        // Prepare final data structure
-        const finalData = prepareFinalDataStructure();
+        const completeData = {
+            caretaker: {
+                name: caretakerData.name,
+                age: caretakerData.age,
+                gender: caretakerData.gender,
+                patientCount: caretakerData.patientCount,
+                phone: caretakerData.phone || null,
+                email: caretakerData.email || null
+            },
 
-        // Simulate database save (replace with actual API call)
+            patients: patientsData.map((patient, index) => ({
+                patientId: index + 1,
+                name: patient.basicInfo.name,
+                age: patient.basicInfo.age,
+                gender: patient.basicInfo.gender,
+                medicalCondition: patient.basicInfo.condition || null,
+                medicineCount: patient.basicInfo.medicineCount,
+
+                medicines: patient.medicines.map((medicine, medIndex) => ({
+                    medicineId: medIndex + 1,
+                    name: medicine.extractedName,
+                    pillsPerDay: medicine.pillsPerDay,
+                    schedule: medicine.schedule.map(slot => ({
+                        timeSlot: slot.timeSlot,
+                        displayName: slot.label
+                    }))
+                }))
+            })),
+
+            summary: {
+                totalPatients: totalPatients,
+                totalMedicines: patientsData.reduce((sum, patient) =>
+                    sum + (patient.medicines ? patient.medicines.length : 0), 0),
+                submissionTimestamp: new Date().toISOString(),
+                formVersion: "1.0"
+            }
+        };
+
+        alert('Complete Caretaker & Patient Data:\n' + JSON.stringify(completeData, null, 2));
+
+        console.log('=== COMPLETE DATA FOR BACKEND ===');
+        console.log(JSON.stringify(completeData, null, 2));
+
         setTimeout(() => {
             try {
-                console.log('Final Data Structure for Database:', finalData);
+                console.log('Final Data Structure for Database:', completeData); // Keep your original log too
 
                 // Show success
                 finalBtn.classList.remove('loading');
@@ -1153,8 +1193,8 @@
 
                 showAlert('success', 'All patient and medicine data has been saved successfully!');
 
-                // Here you would add actual database integration
-                // Example: await saveToDatabase(finalData);
+                // Backend integration point here
+                // await saveToDatabase(completeData);
 
             } catch (error) {
                 console.error('Final submit error:', error);
