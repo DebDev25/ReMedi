@@ -108,6 +108,7 @@
 
     input[type="text"],
     input[type="number"],
+    input[type="tel"],
     select,
     textarea {
         width: 100%;
@@ -124,6 +125,7 @@
 
     input[type="text"]:focus,
     input[type="number"]:focus,
+    input[type="tel"]:focus,
     select:focus,
     textarea:focus {
         outline: none;
@@ -190,6 +192,7 @@
 
     input[type="text"],
     input[type="number"],
+    input[type="tel"],
     select,
     textarea {
         width: 100%;
@@ -242,6 +245,11 @@
                 <option value="other">Other</option>
                 <option value="prefer-not-to-say">Prefer not to say</option>
             </select>
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone Number <span class="required">*</span></label>
+            <input id="phone" name="phone" placeholder="Enter your phone number"
+                   required type="tel" pattern="[0-9]{10}" maxlength="10"/>
         </div>
         <a class="next-btn" href="#" id="toMedicineSchedule">Next</a>
     </form>
@@ -394,13 +402,100 @@
         }
     });
 
-    document.getElementById('scheduleForm').addEventListener('submit', e => {
+    // Replace your existing form submission handler with this:
+    document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        let scheduleData = {};
-        formData.forEach((val, key) => scheduleData[key] = val);
-        alert('Saved schedule data:\n' + JSON.stringify(scheduleData, null, 2));
-        // Backend integration point here
+
+        try {
+            // Get all form data from the schedule form
+            const formData = new FormData(e.target);
+
+            // Get patient personal information from the patient form
+            const patientForm = document.getElementById('patientForm');
+            const patientFormData = new FormData(patientForm);
+
+            const patientInfo = {
+                name: patientFormData.get('name') || '',
+                age: patientFormData.get('age') || '',
+                gender: patientFormData.get('gender') || '',
+                phone: patientFormData.get('phone') || ''
+            };
+
+            // Extract medicine count
+            const medicineCount = parseInt(formData.get('medicinesCount')) || 0;
+
+            // Extract medicine schedule data
+            const medicines = [];
+
+            for (let i = 1; i <= medicineCount; i++) {
+                const medicineName = formData.get(`medicineName${i}`);
+                const medicineType = formData.get(`medicineType${i}`);
+                const dosesPerDay = parseInt(formData.get(`dosesPerDay${i}`)) || 0;
+
+                // Get selected time slots for this medicine
+                const selectedSlots = [];
+                const slotCheckboxes = document.querySelectorAll(`input[name="slotTime${i}"]:checked`);
+
+                slotCheckboxes.forEach(checkbox => {
+                    selectedSlots.push({
+                        timeSlot: checkbox.value,
+                        displayName: checkbox.nextElementSibling.textContent
+                    });
+                });
+
+                if (medicineName && medicineType && dosesPerDay > 0) {
+                    medicines.push({
+                        medicineId: i,
+                        name: medicineName,
+                        type: medicineType,
+                        dosesPerDay: dosesPerDay,
+                        schedule: selectedSlots
+                    });
+                }
+            }
+
+            // Create complete structured data
+            const completeScheduleData = {
+                patient: {
+                    name: patientInfo.name,
+                    age: patientInfo.age,
+                    gender: patientInfo.gender,
+                    phone: patientInfo.phone
+                },
+                medicineSchedule: {
+                    totalMedicines: medicines.length,
+                    medicines: medicines
+                },
+                summary: {
+                    totalMedicines: medicines.length,
+                    totalDailyDoses: medicines.reduce((sum, med) => sum + med.dosesPerDay, 0),
+                    submissionTimestamp: new Date().toISOString(),
+                    formVersion: "1.0"
+                }
+            };
+
+            // Send data to Flask backend
+            const response = await fetch('/api/save-patient-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(completeScheduleData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Backend Response:', result);
+
+            alert('Patient schedule saved successfully!');
+
+        } catch (error) {
+            console.error('Error sending data to backend:', error);
+            alert('Failed to save schedule to server. Please try again.');
+        }
     });
 </script>
 

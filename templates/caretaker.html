@@ -1125,8 +1125,7 @@
     }
 
     // Handle final submit
-    // REPLACE your existing handleFinalSubmit function with this:
-    function handleFinalSubmit() {
+    async function handleFinalSubmit() {
         const finalBtn = document.getElementById('finalSubmitBtn');
         if (!finalBtn) return;
 
@@ -1138,6 +1137,7 @@
 
         setButtonLoadingState(finalBtn, true, 'Saving to Database...');
 
+        // Prepare complete data for backend
         const completeData = {
             caretaker: {
                 name: caretakerData.name,
@@ -1176,32 +1176,36 @@
             }
         };
 
-        alert('Complete Caretaker & Patient Data:\n' + JSON.stringify(completeData, null, 2));
+        try {
+            // Send data to Flask backend
+            const response = await fetch('/api/save-caretaker-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(completeData)
+            });
 
-        console.log('=== COMPLETE DATA FOR BACKEND ===');
-        console.log(JSON.stringify(completeData, null, 2));
-
-        setTimeout(() => {
-            try {
-                console.log('Final Data Structure for Database:', completeData); // Keep your original log too
-
-                // Show success
-                finalBtn.classList.remove('loading');
-                finalBtn.textContent = 'Data Saved Successfully!';
-                finalBtn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
-                finalBtn.disabled = true;
-
-                showAlert('success', 'All patient and medicine data has been saved successfully!');
-
-                // Backend integration point here
-                // await saveToDatabase(completeData);
-
-            } catch (error) {
-                console.error('Final submit error:', error);
-                showAlert('error', 'An error occurred while saving data. Please try again.');
-                setButtonLoadingState(finalBtn, false, 'Submit All Data');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        }, 3000);
+
+            const result = await response.json();
+            console.log('Backend Response:', result);
+
+            // Show success
+            finalBtn.classList.remove('loading');
+            finalBtn.textContent = 'Data Saved Successfully!';
+            finalBtn.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+            finalBtn.disabled = true;
+
+            showAlert('success', result.message || 'All data has been saved successfully!');
+
+        } catch (error) {
+            console.error('Error sending data to backend:', error);
+            showAlert('error', 'Failed to save data to server. Please try again.');
+            setButtonLoadingState(finalBtn, false, 'Submit All Data');
+        }
     }
 
     // Prepare final data structure
